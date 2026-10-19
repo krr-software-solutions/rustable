@@ -1,0 +1,26 @@
+# Build output
+/target/
+
+# Rust / cargo
+**/*.rs.bk
+*.pdb
+
+# Coverage / profiling
+*.profraw
+*.profdata
+/coverage/
+
+# Env / secrets
+.env
+.env.*
+
+# Editors / IDEs
+.idea/
+.vscode/
+*.iml
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
