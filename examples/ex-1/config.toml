@@ -1,0 +1,3 @@
+
+dialect = "postgres"
+migrations_dir = ".."

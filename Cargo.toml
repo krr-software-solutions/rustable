@@ -15,7 +15,11 @@ rustable-core = { path = "code/core" }
 
 anyhow = "1"
 clap = { version = "4", features = ["derive", "env"] }
+clap_complete = "4"
 sqlparser = "0.63"
+serde = { version = "1", features = ["derive"] }
+toml = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
