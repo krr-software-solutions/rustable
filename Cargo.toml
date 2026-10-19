@@ -1,0 +1,24 @@
+[workspace]
+resolver = "3"
+members = [
+    "code/core",
+    "code/cli",
+]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+
+[workspace.dependencies]
+# workspace crates
+rustable-core = { path = "code/core" }
+
+anyhow = "1"
+clap = { version = "4", features = ["derive", "env"] }
+sqlparser = "0.63"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"
+
+[workspace.lints.clippy]
+pedantic = { level = "warn", priority = -1 }

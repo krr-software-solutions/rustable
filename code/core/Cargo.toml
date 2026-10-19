@@ -1,0 +1,11 @@
+[package]
+name = "rustable-core"
+description = "Core library for rustable: migration parsing, schema derivation, and execution"
+version.workspace = true
+edition.workspace = true
+
+[dependencies]
+sqlparser.workspace = true
+
+[lints]
+workspace = true

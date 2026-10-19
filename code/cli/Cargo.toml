@@ -1,0 +1,17 @@
+[package]
+name = "rustable-cli"
+description = "The rustable command-line interface"
+version.workspace = true
+edition.workspace = true
+
+[[bin]]
+name = "rustable"
+path = "src/main.rs"
+
+[dependencies]
+rustable-core.workspace = true
+
+clap.workspace = true
+
+[lints]
+workspace = true
