@@ -1,0 +1,163 @@
+[[table]]
+name = "posts"
+primary_key = ["id"]
+comment = "blog posts"
+
+[table.options]
+COLLATE = "utf8mb4_unicode_ci"
+"DEFAULT CHARSET" = "utf8mb4"
+ENGINE = "InnoDB"
+ROW_FORMAT = "DYNAMIC"
+
+[[table.column]]
+name = "id"
+type = "BIGINT UNSIGNED"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "author_id"
+type = "BIGINT UNSIGNED"
+nullable = false
+comment = "FK users.id"
+
+[[table.column]]
+name = "slug"
+type = "VARCHAR(191)"
+nullable = false
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "title"
+type = "VARCHAR(255)"
+nullable = false
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "body"
+type = "MEDIUMTEXT"
+nullable = false
+collation = "utf8mb4_unicode_ci"
+comment = "markdown source"
+
+[[table.column]]
+name = "status"
+type = "ENUM('draft', 'published', 'archived')"
+nullable = false
+default = "'draft'"
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "published_at"
+type = "DATETIME"
+nullable = true
+default = "NULL"
+
+[[table.column]]
+name = "created_at"
+type = "TIMESTAMP"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+
+[[table.column]]
+name = "updated_at"
+type = "TIMESTAMP"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+on_update = "CURRENT_TIMESTAMP"
+
+[[table.index]]
+name = "uk_posts_author_slug"
+columns = [
+    "author_id",
+    "slug",
+]
+unique = true
+constraint = true
+
+[[table.index]]
+name = "idx_posts_status_published"
+columns = [
+    "status",
+    "published_at",
+]
+
+[[table.foreign_key]]
+name = "fk_posts_author"
+columns = ["author_id"]
+references_table = "users"
+references_columns = ["id"]
+on_delete = "CASCADE"
+on_update = "RESTRICT"
+
+[[table]]
+name = "users"
+primary_key = ["id"]
+comment = "blog authors + readers"
+
+[table.options]
+COLLATE = "utf8mb4_unicode_ci"
+"DEFAULT CHARSET" = "utf8mb4"
+ENGINE = "InnoDB"
+ROW_FORMAT = "DYNAMIC"
+
+[[table.column]]
+name = "id"
+type = "BIGINT UNSIGNED"
+nullable = false
+auto_increment = true
+comment = "surrogate PK"
+
+[[table.column]]
+name = "email"
+type = "VARCHAR(255)"
+nullable = false
+collation = "utf8mb4_unicode_ci"
+comment = "login email, case-insensitive via collation"
+
+[[table.column]]
+name = "display_name"
+type = "VARCHAR(64)"
+nullable = true
+default = "NULL"
+collation = "utf8mb4_unicode_ci"
+comment = "shown on posts; falls back to email local-part"
+
+[[table.column]]
+name = "password_hash"
+type = "VARBINARY(60)"
+nullable = false
+comment = "bcrypt"
+
+[[table.column]]
+name = "is_admin"
+type = "TINYINT(1)"
+nullable = false
+default = "'0'"
+
+[[table.column]]
+name = "created_at"
+type = "DATETIME(3)"
+nullable = false
+default = "CURRENT_TIMESTAMP(3)"
+
+[[table.column]]
+name = "updated_at"
+type = "DATETIME(3)"
+nullable = false
+default = "CURRENT_TIMESTAMP(3)"
+on_update = "CURRENT_TIMESTAMP(3)"
+
+[[table.index]]
+name = "uk_users_email"
+columns = ["email"]
+unique = true
+constraint = true
+
+[[table.index]]
+name = "idx_users_created_at"
+columns = ["created_at"]
+
+[[table.index]]
+name = "idx_users_display_name"
+columns = ["display_name(20)"]

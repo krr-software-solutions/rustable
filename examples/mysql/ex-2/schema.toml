@@ -1,0 +1,275 @@
+[[table]]
+name = "customer_order_stats"
+primary_key = ["customer_id"]
+
+[table.options]
+COLLATE = "utf8mb4_unicode_ci"
+"DEFAULT CHARSET" = "utf8mb4"
+ENGINE = "InnoDB"
+ROW_FORMAT = "DYNAMIC"
+
+[[table.column]]
+name = "customer_id"
+type = "BIGINT UNSIGNED"
+nullable = false
+
+[[table.column]]
+name = "order_count"
+type = "INT UNSIGNED"
+nullable = false
+default = "'0'"
+
+[[table.column]]
+name = "lifetime_cents"
+type = "BIGINT"
+nullable = false
+default = "'0'"
+
+[[table.column]]
+name = "last_order_at"
+type = "DATETIME"
+nullable = true
+default = "NULL"
+
+[[table.column]]
+name = "refreshed_at"
+type = "DATETIME"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+on_update = "CURRENT_TIMESTAMP"
+
+[[table.index]]
+name = "idx_cos_lifetime"
+columns = ["lifetime_cents DESC"]
+
+[[table.foreign_key]]
+name = "fk_cos_customer"
+columns = ["customer_id"]
+references_table = "customers"
+references_columns = ["id"]
+on_delete = "CASCADE"
+
+[[table]]
+name = "customers"
+primary_key = ["id"]
+comment = "shop customers (incl. guests)"
+
+[table.options]
+COLLATE = "utf8mb4_unicode_ci"
+"DEFAULT CHARSET" = "utf8mb4"
+ENGINE = "InnoDB"
+ROW_FORMAT = "DYNAMIC"
+
+[[table.column]]
+name = "id"
+type = "BIGINT UNSIGNED"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "external_ref"
+type = "CHAR(36)"
+nullable = false
+charset = "ascii"
+collation = "ascii_bin"
+comment = "uuid from legacy POS"
+
+[[table.column]]
+name = "email"
+type = "VARCHAR(255)"
+nullable = false
+collation = "utf8mb4_unicode_ci"
+comment = "required since SHOP-140"
+
+[[table.column]]
+name = "full_name"
+type = "VARCHAR(255)"
+nullable = false
+default = "''"
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "phone_number"
+type = "VARCHAR(20)"
+nullable = true
+default = "NULL"
+collation = "utf8mb4_unicode_ci"
+comment = "E.164-ish, no spaces"
+
+[[table.column]]
+name = "marketing_opt_in"
+type = "TINYINT(1)"
+nullable = false
+default = "'0'"
+
+[[table.column]]
+name = "created_at"
+type = "DATETIME"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+
+[[table.column]]
+name = "updated_at"
+type = "DATETIME"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+on_update = "CURRENT_TIMESTAMP"
+
+[[table.index]]
+name = "uk_customers_external_ref"
+columns = ["external_ref"]
+unique = true
+constraint = true
+
+[[table.index]]
+name = "idx_customers_email"
+columns = ["email(20)"]
+
+[[table]]
+name = "order_status_audit"
+primary_key = ["id"]
+comment = "append-only; no FK so audit survives order deletes"
+
+[table.options]
+COLLATE = "utf8mb4_unicode_ci"
+"DEFAULT CHARSET" = "utf8mb4"
+ENGINE = "InnoDB"
+ROW_FORMAT = "DYNAMIC"
+
+[[table.column]]
+name = "id"
+type = "BIGINT UNSIGNED"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "order_id"
+type = "BIGINT UNSIGNED"
+nullable = false
+
+[[table.column]]
+name = "old_status"
+type = "VARCHAR(16)"
+nullable = true
+default = "NULL"
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "new_status"
+type = "VARCHAR(16)"
+nullable = false
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "changed_at"
+type = "TIMESTAMP(6)"
+nullable = false
+default = "CURRENT_TIMESTAMP(6)"
+
+[[table.column]]
+name = "changed_by"
+type = "VARCHAR(128)"
+nullable = false
+default = "''"
+collation = "utf8mb4_unicode_ci"
+comment = "CURRENT_USER() at time of change"
+
+[[table.index]]
+name = "idx_osa_order"
+columns = [
+    "order_id",
+    "changed_at",
+]
+
+[[table]]
+name = "orders"
+primary_key = ["id"]
+comment = "customer orders"
+
+[table.options]
+COLLATE = "utf8mb4_unicode_ci"
+"DEFAULT CHARSET" = "utf8mb4"
+ENGINE = "InnoDB"
+ROW_FORMAT = "DYNAMIC"
+
+[[table.column]]
+name = "id"
+type = "BIGINT UNSIGNED"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "customer_id"
+type = "BIGINT UNSIGNED"
+nullable = false
+
+[[table.column]]
+name = "status"
+type = "ENUM('pending', 'paid', 'shipped', 'delivered', 'cancelled', 'refunded')"
+nullable = false
+default = "'pending'"
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "currency"
+type = "CHAR(3)"
+nullable = false
+default = "'USD'"
+charset = "ascii"
+collation = "ascii_bin"
+
+[[table.column]]
+name = "total_cents"
+type = "BIGINT"
+nullable = false
+default = "'0'"
+comment = "minor units; can be negative for refunds"
+
+[[table.column]]
+name = "notes"
+type = "TEXT"
+nullable = true
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "created_at"
+type = "DATETIME"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+
+[[table.column]]
+name = "updated_at"
+type = "DATETIME"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+on_update = "CURRENT_TIMESTAMP"
+
+[[table.index]]
+name = "idx_orders_customer"
+columns = ["customer_id"]
+
+[[table.index]]
+name = "idx_orders_customer_created"
+columns = [
+    "customer_id",
+    "created_at DESC",
+]
+
+[[table.index]]
+name = "idx_orders_status_created"
+columns = [
+    "status",
+    "created_at",
+]
+
+[[table.foreign_key]]
+name = "fk_orders_customer"
+columns = ["customer_id"]
+references_table = "customers"
+references_columns = ["id"]
+on_delete = "RESTRICT"
+
+[[object]]
+kind = "trigger"
+name = "trg_orders_status_audit"
+table = "orders"

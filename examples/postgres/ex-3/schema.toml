@@ -1,0 +1,61 @@
+[[table]]
+name = "recipes"
+primary_key = ["id"]
+
+[[table.column]]
+name = "id"
+type = "BIGINT"
+nullable = false
+generated = "GENERATED ALWAYS AS IDENTITY"
+
+[[table.column]]
+name = "name"
+type = "VARCHAR(120)"
+nullable = false
+
+[[table.column]]
+name = "servings"
+type = "SMALLINT"
+nullable = false
+default = "2"
+
+[[table.column]]
+name = "tags"
+type = "TEXT[]"
+nullable = false
+default = "ARRAY[]::TEXT[]"
+
+[[table.column]]
+name = "ingredients"
+type = "JSONB"
+nullable = false
+default = "'[]'::JSONB"
+
+[[table.column]]
+name = "instructions"
+type = "TEXT"
+nullable = true
+
+[[table.column]]
+name = "created_at"
+type = "TIMESTAMPTZ"
+nullable = false
+default = "now()"
+
+[[table.index]]
+name = "recipes_name_lower_key"
+columns = ["lower(name)"]
+unique = true
+
+[[table.index]]
+name = "recipes_ingredients_gin_idx"
+columns = ["ingredients"]
+using = "GIN"
+
+[[table.check]]
+name = "recipes_servings_check"
+expr = "servings > 0"
+
+[[table.check]]
+name = "recipes_servings_reasonable"
+expr = "servings <= 100"

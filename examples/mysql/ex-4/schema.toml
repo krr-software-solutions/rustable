@@ -1,0 +1,177 @@
+[[table]]
+name = "requesters"
+primary_key = ["id"]
+
+[table.options]
+COLLATE = "utf8mb4_unicode_ci"
+"DEFAULT CHARSET" = "utf8mb4"
+ENGINE = "InnoDB"
+ROW_FORMAT = "DYNAMIC"
+
+[[table.column]]
+name = "id"
+type = "BIGINT UNSIGNED"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "email"
+type = "VARCHAR(255)"
+nullable = false
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "created_at"
+type = "DATETIME"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+
+[[table.index]]
+name = "uk_requesters_email"
+columns = ["email"]
+unique = true
+constraint = true
+
+[[table]]
+name = "staff_members"
+primary_key = ["id"]
+comment = "helpdesk staff (was `agents` before HD-81)"
+
+[table.options]
+COLLATE = "utf8mb4_unicode_ci"
+"DEFAULT CHARSET" = "utf8mb4"
+ENGINE = "InnoDB"
+
+[[table.column]]
+name = "id"
+type = "INT UNSIGNED"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "username"
+type = "VARCHAR(64)"
+nullable = false
+
+[[table.column]]
+name = "email"
+type = "VARCHAR(255)"
+nullable = false
+
+[[table.column]]
+name = "role"
+type = "ENUM('agent', 'lead', 'admin')"
+nullable = false
+default = "'agent'"
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "active"
+type = "TINYINT(1)"
+nullable = false
+default = "'1'"
+
+[[table.index]]
+name = "uk_agents_username"
+columns = ["username"]
+unique = true
+constraint = true
+
+[[table]]
+name = "tickets"
+primary_key = ["id"]
+comment = "support tickets (utf8mb4 since HD-22)"
+
+[table.options]
+COLLATE = "utf8mb4_unicode_ci"
+"DEFAULT CHARSET" = "utf8mb4"
+ENGINE = "InnoDB"
+ROW_FORMAT = "dynamic"
+
+[[table.column]]
+name = "id"
+type = "BIGINT UNSIGNED"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "subject"
+type = "VARCHAR(64)"
+nullable = false
+collation = "utf8mb4_unicode_ci"
+comment = "max 64 since HD-57"
+
+[[table.column]]
+name = "body"
+type = "MEDIUMTEXT"
+nullable = true
+
+[[table.column]]
+name = "status"
+type = "ENUM('open', 'pending', 'solved', 'closed')"
+nullable = false
+default = "'open'"
+
+[[table.column]]
+name = "priority"
+type = "TINYINT UNSIGNED"
+nullable = false
+default = "'3'"
+comment = "1=urgent .. 4=low"
+
+[[table.column]]
+name = "assignee_id"
+type = "INT UNSIGNED"
+nullable = true
+default = "NULL"
+
+[[table.column]]
+name = "requester_id"
+type = "BIGINT UNSIGNED"
+nullable = true
+default = "NULL"
+
+[[table.column]]
+name = "created_at"
+type = "DATETIME"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+
+[[table.column]]
+name = "updated_at"
+type = "DATETIME"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+on_update = "CURRENT_TIMESTAMP"
+
+[[table.index]]
+name = "idx_tickets_status_prio"
+columns = [
+    "status",
+    "priority",
+]
+
+[[table.index]]
+name = "fk_tickets_assignee"
+columns = ["assignee_id"]
+
+[[table.index]]
+name = "idx_tickets_requester_id"
+columns = ["requester_id"]
+
+[[table.foreign_key]]
+name = "fk_tickets_assignee"
+columns = ["assignee_id"]
+references_table = "staff_members"
+references_columns = ["id"]
+on_delete = "SET NULL"
+
+[[table.foreign_key]]
+name = "fk_tickets_requester"
+columns = ["requester_id"]
+references_table = "requesters"
+references_columns = ["id"]
+
+[[object]]
+kind = "procedure"
+name = "sp_auto_close_solved"

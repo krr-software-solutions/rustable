@@ -1,0 +1,126 @@
+[[table]]
+name = "notebooks"
+primary_key = ["id"]
+
+[[table.column]]
+name = "id"
+type = "INTEGER"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "name"
+type = "TEXT"
+nullable = false
+collation = "NOCASE"
+
+[[table.column]]
+name = "created_at"
+type = "TEXT"
+nullable = false
+default = "(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))"
+
+[[table.column]]
+name = "icon"
+type = "TEXT"
+nullable = false
+default = "'📓'"
+
+[[table.index]]
+columns = ["name"]
+unique = true
+constraint = true
+
+[[table.check]]
+expr = "color IS NULL OR color GLOB '#[0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F][0-9a-fA-F]'"
+
+[[table]]
+name = "notes"
+primary_key = ["id"]
+
+[[table.column]]
+name = "id"
+type = "INTEGER"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "notebook_id"
+type = "INTEGER"
+nullable = false
+
+[[table.column]]
+name = "title"
+type = "TEXT"
+nullable = false
+default = "''"
+
+[[table.column]]
+name = "body"
+type = "TEXT"
+nullable = false
+default = "''"
+
+[[table.column]]
+name = "created_at"
+type = "TEXT"
+nullable = false
+default = "(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))"
+
+[[table.column]]
+name = "updated_at"
+type = "TEXT"
+nullable = false
+default = "(strftime('%Y-%m-%dT%H:%M:%fZ', 'now'))"
+
+[[table.column]]
+name = "pinned"
+type = "INTEGER"
+nullable = false
+default = "0"
+
+[[table.index]]
+name = "idx_notes_notebook"
+columns = [
+    "notebook_id",
+    "updated_at DESC",
+]
+
+[[table.index]]
+name = "idx_notes_pinned"
+columns = [
+    "notebook_id",
+    "updated_at DESC",
+]
+where = "pinned = 1"
+
+[[table.foreign_key]]
+columns = ["notebook_id"]
+references_table = "notebooks"
+references_columns = ["id"]
+on_delete = "CASCADE"
+
+[[table.check]]
+expr = "length(title) <= 200"
+
+[[table.check]]
+expr = "pinned IN (0, 1)"
+
+[[object]]
+kind = "trigger"
+name = "notes_fts_ad"
+table = "notes"
+
+[[object]]
+kind = "trigger"
+name = "notes_fts_ai"
+table = "notes"
+
+[[object]]
+kind = "trigger"
+name = "notes_fts_au"
+table = "notes"
+
+[[object]]
+kind = "virtual table"
+name = "notes_fts"

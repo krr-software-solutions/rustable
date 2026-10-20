@@ -1,0 +1,148 @@
+[[table]]
+name = "inventory"
+primary_key = [
+    "warehouse_id",
+    "product_id",
+]
+
+[[table.column]]
+name = "warehouse_id"
+type = "INTEGER"
+nullable = false
+
+[[table.column]]
+name = "product_id"
+type = "BIGINT"
+nullable = false
+
+[[table.column]]
+name = "quantity"
+type = "INTEGER"
+nullable = false
+default = "0"
+
+[[table.column]]
+name = "reorder_at"
+type = "INTEGER"
+nullable = true
+
+[[table.column]]
+name = "updated_at"
+type = "TIMESTAMPTZ"
+nullable = false
+
+[[table.index]]
+name = "inventory_low_stock_idx"
+columns = [
+    "warehouse_id",
+    "product_id",
+]
+where = "reorder_at IS NOT NULL"
+
+[[table.foreign_key]]
+name = "stock_levels_warehouse_id_fkey"
+columns = ["warehouse_id"]
+references_table = "warehouses"
+references_columns = ["id"]
+on_delete = "CASCADE"
+
+[[table.foreign_key]]
+name = "stock_levels_product_id_fkey"
+columns = ["product_id"]
+references_table = "products"
+references_columns = ["id"]
+on_delete = "CASCADE"
+
+[[table.check]]
+name = "stock_levels_quantity_check"
+expr = "quantity >= 0"
+
+[[table.check]]
+name = "stock_levels_reorder_at_check"
+expr = "reorder_at IS NULL OR reorder_at >= 0"
+
+[[table]]
+name = "products"
+primary_key = ["id"]
+comment = "Catalogue of sellable items, independent of location."
+
+[[table.column]]
+name = "id"
+type = "BIGINT"
+nullable = false
+generated = "GENERATED ALWAYS AS IDENTITY"
+
+[[table.column]]
+name = "name"
+type = "TEXT"
+nullable = false
+
+[[table.column]]
+name = "description"
+type = "TEXT"
+nullable = true
+
+[[table.column]]
+name = "price"
+type = "NUMERIC(12,2)"
+nullable = false
+
+[[table.column]]
+name = "created_at"
+type = "TIMESTAMPTZ"
+nullable = false
+default = "now()"
+
+[[table.column]]
+name = "sku"
+type = "TEXT"
+nullable = false
+
+[[table.index]]
+name = "products_sku_key"
+columns = ["sku"]
+unique = true
+
+[[table.index]]
+name = "products_name_lower_idx"
+columns = ["lower(name)"]
+
+[[table.check]]
+name = "products_price_check"
+expr = "price >= 0"
+
+[[table]]
+name = "warehouses"
+primary_key = ["id"]
+
+[[table.column]]
+name = "id"
+type = "INTEGER"
+nullable = false
+generated = "GENERATED ALWAYS AS IDENTITY"
+
+[[table.column]]
+name = "code"
+type = "CHAR(4)"
+nullable = false
+
+[[table.column]]
+name = "city"
+type = "TEXT"
+nullable = false
+
+[[table.column]]
+name = "created_at"
+type = "TIMESTAMPTZ"
+nullable = false
+default = "now()"
+
+[[table.index]]
+name = "warehouses_code_key"
+columns = ["code"]
+unique = true
+constraint = true
+
+[[table.check]]
+name = "warehouses_code_check"
+expr = "code = upper(code)"

@@ -1,0 +1,103 @@
+[[table]]
+name = "bookmark_tags"
+primary_key = [
+    "bookmark_id",
+    "tag",
+]
+
+[table.options]
+STRICT = "true"
+"WITHOUT ROWID" = "true"
+
+[[table.column]]
+name = "bookmark_id"
+type = "INTEGER"
+nullable = false
+
+[[table.column]]
+name = "tag"
+type = "TEXT"
+nullable = false
+
+[[table.index]]
+name = "idx_bookmark_tags_tag"
+columns = ["tag"]
+
+[[table.foreign_key]]
+columns = ["bookmark_id"]
+references_table = "bookmarks"
+references_columns = ["id"]
+on_delete = "CASCADE"
+
+[[table.foreign_key]]
+columns = ["tag"]
+references_table = "tags"
+references_columns = ["name"]
+on_delete = "CASCADE"
+on_update = "CASCADE"
+
+[[table]]
+name = "bookmarks"
+primary_key = ["id"]
+
+[table.options]
+STRICT = "true"
+
+[[table.column]]
+name = "id"
+type = "INTEGER"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "url"
+type = "TEXT"
+nullable = false
+
+[[table.column]]
+name = "title"
+type = "TEXT"
+nullable = false
+default = "''"
+
+[[table.column]]
+name = "status"
+type = "TEXT"
+nullable = false
+default = "'saved'"
+
+[[table.column]]
+name = "added_at"
+type = "TEXT"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+
+[[table.index]]
+name = "idx_bookmarks_url"
+columns = ["lower(url)"]
+unique = true
+
+[[table.index]]
+name = "idx_bookmarks_unread"
+columns = ["added_at"]
+where = "status = 'unread'"
+
+[[table.check]]
+expr = "url LIKE 'http://%' OR url LIKE 'https://%'"
+
+[[table.check]]
+expr = "status IN ('saved', 'unread', 'archived')"
+
+[[table]]
+name = "tags"
+primary_key = ["name"]
+
+[table.options]
+STRICT = "true"
+"WITHOUT ROWID" = "true"
+
+[[table.column]]
+name = "name"
+type = "TEXT"
+nullable = false
+collation = "NOCASE"

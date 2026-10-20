@@ -1,0 +1,99 @@
+[[table]]
+name = "bookmarks"
+primary_key = ["id"]
+
+[[table.column]]
+name = "id"
+type = "BIGSERIAL"
+nullable = false
+
+[[table.column]]
+name = "user_id"
+type = "BIGINT"
+nullable = false
+
+[[table.column]]
+name = "url"
+type = "TEXT"
+nullable = false
+
+[[table.column]]
+name = "label"
+type = "TEXT"
+nullable = false
+comment = "User-editable display label; defaults to the page <title> on save."
+
+[[table.column]]
+name = "tags"
+type = "TEXT[]"
+nullable = false
+default = "'{}'"
+
+[[table.column]]
+name = "created_at"
+type = "TIMESTAMPTZ"
+nullable = false
+default = "now()"
+
+[[table.column]]
+name = "archived_at"
+type = "TIMESTAMPTZ"
+nullable = true
+
+[[table.index]]
+name = "bookmarks_user_id_idx"
+columns = ["user_id"]
+
+[[table.index]]
+name = "bookmarks_tags_gin_idx"
+columns = ["tags"]
+using = "GIN"
+
+[[table.index]]
+name = "bookmarks_live_feed_idx"
+columns = [
+    "user_id",
+    "created_at DESC",
+]
+where = "archived_at IS NULL"
+
+[[table.foreign_key]]
+name = "bookmarks_user_id_fkey"
+columns = ["user_id"]
+references_table = "users"
+references_columns = ["id"]
+on_delete = "CASCADE"
+
+[[table.check]]
+name = "bookmarks_url_check"
+expr = "url ~* '^https?://'"
+
+[[table]]
+name = "users"
+primary_key = ["id"]
+
+[[table.column]]
+name = "id"
+type = "BIGSERIAL"
+nullable = false
+
+[[table.column]]
+name = "email"
+type = "TEXT"
+nullable = false
+
+[[table.column]]
+name = "display_name"
+type = "TEXT"
+nullable = true
+
+[[table.column]]
+name = "created_at"
+type = "TIMESTAMPTZ"
+nullable = false
+default = "now()"
+
+[[table.index]]
+name = "users_email_lower_key"
+columns = ["lower(email)"]
+unique = true

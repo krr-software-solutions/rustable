@@ -1,0 +1,13 @@
+[package]
+name = "rustable-example-app"
+description = "An example app declaring its tables with #[derive(Table)] (mirrors examples/postgres/ex-1)"
+version.workspace = true
+edition.workspace = true
+publish = false
+
+[dependencies]
+rustable-core.workspace = true
+rustable-derive.workspace = true
+
+[lints]
+workspace = true

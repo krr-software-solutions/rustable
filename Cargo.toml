@@ -3,6 +3,9 @@ resolver = "3"
 members = [
     "code/core",
     "code/cli",
+    "code/derive",
+    "code/db",
+    "code/example-app",
 ]
 
 [workspace.package]
@@ -12,14 +15,22 @@ edition = "2024"
 [workspace.dependencies]
 # workspace crates
 rustable-core = { path = "code/core" }
+rustable-derive = { path = "code/derive" }
+rustable-db = { path = "code/db" }
 
 anyhow = "1"
+thiserror = "2"
 clap = { version = "4", features = ["derive", "env"] }
 clap_complete = "4"
+inventory = "0.3"
+proc-macro2 = "1"
+quote = "1"
 sqlparser = "0.63"
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "any", "postgres", "mysql", "sqlite"] }
+syn = { version = "2", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 toml = "1"
-tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs"] }
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "fs", "time"] }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"

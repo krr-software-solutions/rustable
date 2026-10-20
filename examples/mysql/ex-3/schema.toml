@@ -1,0 +1,178 @@
+[[table]]
+name = "environments"
+primary_key = ["id"]
+
+[table.options]
+COLLATE = "utf8mb4_unicode_ci"
+"DEFAULT CHARSET" = "utf8mb4"
+ENGINE = "InnoDB"
+
+[[table.column]]
+name = "id"
+type = "SMALLINT UNSIGNED"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "name"
+type = "VARCHAR(32)"
+nullable = false
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "is_production"
+type = "TINYINT(1)"
+nullable = false
+default = "'0'"
+
+[[table.index]]
+name = "uk_env_name"
+columns = ["name"]
+unique = true
+constraint = true
+
+[[table]]
+name = "flag_overrides"
+primary_key = ["id"]
+comment = "per-subject overrides"
+
+[table.options]
+COLLATE = "utf8mb4_unicode_ci"
+"DEFAULT CHARSET" = "utf8mb4"
+ENGINE = "InnoDB"
+ROW_FORMAT = "DYNAMIC"
+
+[[table.column]]
+name = "id"
+type = "BIGINT UNSIGNED"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "flag_id"
+type = "INT UNSIGNED"
+nullable = false
+
+[[table.column]]
+name = "environment_id"
+type = "SMALLINT UNSIGNED"
+nullable = false
+
+[[table.column]]
+name = "subject_type"
+type = "ENUM('user', 'org', 'ip_range')"
+nullable = false
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "subject_key"
+type = "VARCHAR(191)"
+nullable = false
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "enabled"
+type = "TINYINT(1)"
+nullable = false
+
+[[table.column]]
+name = "expires_at"
+type = "DATETIME"
+nullable = true
+default = "NULL"
+comment = "NULL = forever"
+
+[[table.index]]
+name = "uk_override"
+columns = [
+    "flag_id",
+    "environment_id",
+    "subject_type",
+    "subject_key",
+]
+unique = true
+constraint = true
+
+[[table.index]]
+name = "idx_override_env"
+columns = ["environment_id"]
+
+[[table.index]]
+name = "idx_override_expiry"
+columns = ["expires_at"]
+
+[[table.foreign_key]]
+name = "fk_override_flag"
+columns = ["flag_id"]
+references_table = "flags"
+references_columns = ["id"]
+on_delete = "CASCADE"
+
+[[table.foreign_key]]
+name = "fk_override_env"
+columns = ["environment_id"]
+references_table = "environments"
+references_columns = ["id"]
+on_delete = "CASCADE"
+
+[[table]]
+name = "flags"
+primary_key = ["id"]
+
+[table.options]
+COLLATE = "utf8mb4_unicode_ci"
+"DEFAULT CHARSET" = "utf8mb4"
+ENGINE = "InnoDB"
+ROW_FORMAT = "DYNAMIC"
+
+[[table.column]]
+name = "id"
+type = "INT UNSIGNED"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "key"
+type = "VARCHAR(128)"
+nullable = false
+charset = "ascii"
+collation = "ascii_bin"
+comment = "e.g. checkout.new-flow"
+
+[[table.column]]
+name = "description"
+type = "VARCHAR(1024)"
+nullable = false
+default = "''"
+collation = "utf8mb4_unicode_ci"
+
+[[table.column]]
+name = "default_enabled"
+type = "TINYINT(1)"
+nullable = false
+default = "'0'"
+
+[[table.column]]
+name = "rollout_pct"
+type = "DECIMAL(5,2) UNSIGNED"
+nullable = false
+default = "'0.00'"
+
+[[table.column]]
+name = "created_at"
+type = "TIMESTAMP"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+
+[[table.column]]
+name = "updated_at"
+type = "TIMESTAMP"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+on_update = "CURRENT_TIMESTAMP"
+
+[[table.index]]
+name = "uk_flags_key"
+columns = ["key"]
+unique = true
+constraint = true

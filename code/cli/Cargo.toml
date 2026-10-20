@@ -10,6 +10,7 @@ path = "src/main.rs"
 
 [dependencies]
 rustable-core.workspace = true
+rustable-db.workspace = true
 
 clap.workspace = true
 clap_complete.workspace = true

@@ -1,0 +1,128 @@
+[[table]]
+name = "habit_logs"
+primary_key = ["id"]
+
+[[table.column]]
+name = "id"
+type = "INTEGER"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "habit_id"
+type = "INTEGER"
+nullable = false
+
+[[table.column]]
+name = "logged_on"
+type = "TEXT"
+nullable = false
+
+[[table.column]]
+name = "note"
+type = "TEXT"
+nullable = true
+
+[[table.column]]
+name = "logged_at"
+type = "TEXT"
+nullable = false
+default = "CURRENT_TIMESTAMP"
+
+[[table.index]]
+columns = [
+    "habit_id",
+    "logged_on",
+]
+unique = true
+constraint = true
+
+[[table.index]]
+name = "idx_habit_logs_logged_on"
+columns = ["logged_on DESC"]
+
+[[table.foreign_key]]
+columns = ["habit_id"]
+references_table = "habits"
+references_columns = ["id"]
+on_delete = "CASCADE"
+
+[[table.check]]
+expr = "day = date(day)"
+
+[[table]]
+name = "habits"
+primary_key = ["id"]
+
+[[table.column]]
+name = "id"
+type = "INTEGER"
+nullable = false
+auto_increment = true
+
+[[table.column]]
+name = "name"
+type = "TEXT"
+nullable = false
+collation = "NOCASE"
+
+[[table.column]]
+name = "frequency"
+type = "TEXT"
+nullable = false
+default = "'daily'"
+
+[[table.column]]
+name = "created_at"
+type = "TEXT"
+nullable = false
+default = "(strftime('%Y-%m-%dT%H:%M:%SZ', 'now'))"
+
+[[table.column]]
+name = "archived_at"
+type = "TEXT"
+nullable = true
+
+[[table.column]]
+name = "updated_at"
+type = "TEXT"
+nullable = true
+
+[[table.column]]
+name = "target_per_week"
+type = "INTEGER"
+nullable = false
+default = "7"
+
+[[table.index]]
+name = "idx_habits_name"
+columns = ["name"]
+unique = true
+
+[[table.index]]
+name = "idx_habits_active"
+columns = ["name"]
+where = "archived_at IS NULL"
+
+[[table.check]]
+expr = "length(TRIM(name)) > 0"
+
+[[table.check]]
+expr = "frequency IN ('daily', 'weekly')"
+
+[[table.check]]
+expr = "target_per_week BETWEEN 1 AND 7"
+
+[[view]]
+name = "v_habit_stats"
+query = "SELECT h.id, h.name, h.frequency, count(c.id) AS total_check_ins, max(c.day) AS last_day, count(CASE WHEN c.day >= date('now', '-6 days') THEN 1 END) AS last_7_days FROM habits h LEFT JOIN check_ins c ON c.habit_id = h.id WHERE h.archived_at IS NULL GROUP BY h.id"
+
+[[object]]
+kind = "trigger"
+name = "check_ins_reject_archived"
+table = "check_ins"
+
+[[object]]
+kind = "trigger"
+name = "habits_touch_updated_at"
+table = "habits"

@@ -1,0 +1,292 @@
+[[table]]
+name = "billing.customers"
+primary_key = ["id"]
+
+[[table.column]]
+name = "id"
+type = "UUID"
+nullable = false
+default = "gen_random_uuid()"
+
+[[table.column]]
+name = "tenant_id"
+type = "UUID"
+nullable = false
+
+[[table.column]]
+name = "email"
+type = "TEXT"
+nullable = false
+
+[[table.column]]
+name = "name"
+type = "TEXT"
+nullable = true
+
+[[table.column]]
+name = "created_at"
+type = "TIMESTAMPTZ"
+nullable = false
+default = "now()"
+
+[[table.index]]
+name = "customers_tenant_id_email_key"
+columns = [
+    "tenant_id",
+    "email",
+]
+unique = true
+constraint = true
+
+[[table.foreign_key]]
+name = "customers_tenant_id_fkey"
+columns = ["tenant_id"]
+references_table = "tenants"
+references_columns = ["id"]
+on_delete = "CASCADE"
+
+[[table]]
+name = "billing.invoice_events"
+primary_key = [
+    "id",
+    "occurred_at",
+]
+
+[table.options]
+"PARTITION BY" = "RANGE(occurred_at)"
+
+[[table.column]]
+name = "id"
+type = "BIGINT"
+nullable = false
+generated = "GENERATED ALWAYS AS IDENTITY"
+
+[[table.column]]
+name = "invoice_id"
+type = "UUID"
+nullable = false
+
+[[table.column]]
+name = "kind"
+type = "TEXT"
+nullable = false
+
+[[table.column]]
+name = "payload"
+type = "JSONB"
+nullable = false
+default = "'{}'::JSONB"
+
+[[table.column]]
+name = "occurred_at"
+type = "TIMESTAMPTZ"
+nullable = false
+default = "now()"
+
+[[table.index]]
+name = "invoice_events_invoice_id_idx"
+columns = [
+    "invoice_id",
+    "occurred_at",
+]
+
+[[table]]
+name = "billing.invoice_events_2025_q2"
+
+[table.options]
+"FOR VALUES" = "FOR VALUES FROM ('2025-04-01') TO ('2025-07-01')"
+"PARTITION OF" = "billing.invoice_events"
+
+[[table]]
+name = "billing.invoice_events_2025_q3"
+
+[table.options]
+"FOR VALUES" = "FOR VALUES FROM ('2025-07-01') TO ('2025-10-01')"
+"PARTITION OF" = "billing.invoice_events"
+
+[[table]]
+name = "billing.invoice_events_default"
+
+[table.options]
+"FOR VALUES" = "DEFAULT"
+"PARTITION OF" = "billing.invoice_events"
+
+[[table]]
+name = "billing.invoices"
+primary_key = ["id"]
+row_level_security = true
+
+[[table.column]]
+name = "id"
+type = "UUID"
+nullable = false
+default = "gen_random_uuid()"
+
+[[table.column]]
+name = "tenant_id"
+type = "UUID"
+nullable = false
+
+[[table.column]]
+name = "number"
+type = "TEXT"
+nullable = false
+
+[[table.column]]
+name = "amount_cents"
+type = "BIGINT"
+nullable = false
+comment = "Total in minor units of currency."
+
+[[table.column]]
+name = "currency"
+type = "CHAR(3)"
+nullable = false
+default = "'USD'"
+
+[[table.column]]
+name = "status"
+type = "BILLING.INVOICE_STATUS"
+nullable = false
+default = "'draft'"
+
+[[table.column]]
+name = "created_at"
+type = "TIMESTAMPTZ"
+nullable = false
+default = "now()"
+
+[[table.column]]
+name = "updated_at"
+type = "TIMESTAMPTZ"
+nullable = false
+default = "now()"
+
+[[table.column]]
+name = "due_date"
+type = "DATE"
+nullable = true
+
+[[table.column]]
+name = "customer_id"
+type = "UUID"
+nullable = true
+
+[[table.index]]
+name = "invoices_tenant_number_key"
+columns = [
+    "tenant_id",
+    "number",
+]
+unique = true
+constraint = true
+
+[[table.index]]
+name = "invoices_tenant_status_idx"
+columns = [
+    "tenant_id",
+    "status",
+]
+
+[[table.foreign_key]]
+name = "invoices_tenant_id_fkey"
+columns = ["tenant_id"]
+references_table = "tenants"
+references_columns = ["id"]
+on_delete = "CASCADE"
+
+[[table.foreign_key]]
+name = "invoices_customer_id_fkey"
+columns = ["customer_id"]
+references_table = "billing.customers"
+references_columns = ["id"]
+
+[[table.check]]
+name = "invoices_amount_cents_check"
+expr = "amount_cents >= 0"
+
+[[table.check]]
+name = "invoices_due_after_created"
+expr = "due_date >= (created_at AT TIME ZONE 'UTC')::DATE"
+
+[[table]]
+name = "tenants"
+primary_key = ["id"]
+
+[[table.column]]
+name = "id"
+type = "UUID"
+nullable = false
+default = "gen_random_uuid()"
+
+[[table.column]]
+name = "slug"
+type = "TEXT"
+nullable = false
+
+[[table.column]]
+name = "name"
+type = "TEXT"
+nullable = false
+
+[[table.column]]
+name = "created_at"
+type = "TIMESTAMPTZ"
+nullable = false
+default = "now()"
+
+[[table.index]]
+name = "tenants_slug_key"
+columns = ["slug"]
+unique = true
+constraint = true
+
+[[table.check]]
+name = "tenants_slug_check"
+expr = "slug ~ '^[a-z0-9-]{3,40}$'"
+
+[[view]]
+name = "billing.monthly_revenue"
+materialized = true
+query = "SELECT tenant_id, date_trunc('month', created_at) AS month, currency, sum(amount_cents) AS revenue_cents, count(*) AS invoice_count FROM billing.invoices WHERE status = 'paid' GROUP BY tenant_id, date_trunc('month', created_at), currency"
+
+[[view]]
+name = "billing.open_invoices"
+query = "SELECT i.id, i.tenant_id, i.number, i.amount_cents, i.currency, i.due_date, (i.due_date < current_date) AS is_overdue FROM billing.invoices i WHERE i.status = 'open'"
+
+[[enum]]
+name = "billing.invoice_status"
+values = [
+    "draft",
+    "open",
+    "paid",
+    "void",
+    "uncollectible",
+]
+
+[[object]]
+kind = "extension"
+name = "pgcrypto"
+
+[[object]]
+kind = "function"
+name = "billing.touch_updated_at"
+
+[[object]]
+kind = "index"
+name = "monthly_revenue_key"
+table = "billing.monthly_revenue"
+
+[[object]]
+kind = "policy"
+name = "invoices_tenant_isolation"
+table = "billing.invoices"
+
+[[object]]
+kind = "schema"
+name = "billing"
+
+[[object]]
+kind = "trigger"
+name = "invoices_touch_updated_at"
+table = "billing.invoices"
