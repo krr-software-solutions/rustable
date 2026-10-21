@@ -1,4 +1,4 @@
-//! Tables declared in Rust code, via `#[derive(rustable_derive::Table)]`.
+//! Tables declared in Rust code, via `#[derive(rustable_sql::Table)]`.
 //!
 //! Every derived table registers itself (through [`inventory`]), so
 //! [`registered_schema`] can collect all of them into a [`Schema`]. Write that to

@@ -14,6 +14,28 @@ Point it at a directory of plain `.sql` migrations and it will:
   optionally with soft drops,
 - apply migrations to a real database, and **verify** the real database matches what it derived.
 
+## Install
+
+The CLI is `rustable`, published as the `rustable-sql-cli` crate (the name `rustable` was taken):
+
+```sh
+cargo install rustable-sql-cli          # from source
+docker run --rm -v "$PWD:/work" registry.krr-software-solutions.com/oss/rustable analyze
+```
+
+Prebuilt binaries (Linux x86_64/aarch64, static; macOS x86_64/arm64) are attached to every
+[release](https://gitlab.krr-software-solutions.com/oss/rustable/-/releases). The image runs as
+an unprivileged user; for commands that write files (`generate`, `plan --write`) add
+`--user "$(id -u):$(id -g)"`.
+
+To declare tables in Rust, depend on the library:
+
+```toml
+[dependencies]
+rustable-sql = "0.1"                                      # + #[derive(Table)]
+# rustable-sql = { version = "0.1", features = ["db"] }   # + rustable_sql::db, to migrate from your app
+```
+
 ## Migrations
 
 Files live next to `config.toml` (or wherever `migrations_dir_path` points):
@@ -69,7 +91,7 @@ comes back, data doesn't) · **irreversible** (data changes, unknown statements,
 ## Tables in code
 
 ```rust
-#[derive(rustable_derive::Table)]
+#[derive(rustable_sql::Table)]
 #[rustable(table = "bookmarks", index = "bookmarks_live_idx: user_id, created_at DESC where archived_at IS NULL")]
 struct Bookmark {
     #[rustable(primary_key, sql_type = "BIGSERIAL")]
@@ -83,7 +105,7 @@ struct Bookmark {
 }
 
 // e.g. in a test or a small bin:
-rustable_core::code::write_code_schema("code.current_schema.toml".as_ref(), Dialect::Postgres)?;
+rustable_sql::code::write_code_schema("code.current_schema.toml".as_ref(), Dialect::Postgres)?;
 ```
 
 See `code/example-app` (mirrors `examples/postgres/ex-1`, with deliberate drift).
@@ -91,7 +113,8 @@ See `code/example-app` (mirrors `examples/postgres/ex-1`, with deliberate drift)
 ## Layout
 
 ```
-code/core         rustable-core: the whole analysis pipeline (no I/O beyond reading files)
+code/lib          rustable-sql: the crate to depend on; re-exports core + derive (+ db with `features = ["db"]`)
+code/core         rustable-sql-core: the whole analysis pipeline (no I/O beyond reading files)
   version.rs        file names → MigrationId (version + name)
   discover.rs       find + pair up/undo files
   statements.rs     split a file into statements, parse each (with recovery)
@@ -105,12 +128,30 @@ code/core         rustable-core: the whole analysis pipeline (no I/O beyond read
   project.rs        analyze a whole directory; check undos
   report.rs         MIGRATIONS.md
   code.rs           #[derive(Table)] support: SqlType, registry, code.current_schema.toml
-code/derive       rustable-derive: the #[derive(Table)] proc macro
-code/db           rustable-db: apply to a real database via sqlx (history table, verify)
-code/cli          rustable: the CLI
+code/derive       rustable-sql-derive: the #[derive(Table)] proc macro
+code/db           rustable-sql-db: apply to a real database via sqlx (history table, verify)
+code/cli          rustable-sql-cli: the CLI (binary `rustable`)
 code/example-app  tables declared in Rust, for the diff/plan demo
 examples/         12 example projects (4 mysql, 5 postgres, 3 sqlite3), validated against real DBs
 ```
 
 `cargo test` runs the analyzer over every example: it must flag exactly the four deliberately
 broken undos documented in the examples' READMEs.
+
+## Releasing
+
+The version comes from the git tag: `Cargo.toml` says `0.0.0`, and CI stamps the tag's version
+in (`scripts/set-version.sh`) before it builds or publishes. To release, tag the merged `main`:
+
+```sh
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+The tag pipeline (`.gitlab-ci.yml`) checks, builds the binaries, pushes the image, creates the
+GitLab release, and publishes every crate to crates.io. Release tags (`v*`) must be protected, as
+the `CARGO_REGISTRY_TOKEN` variable is.
+
+## License
+
+Licensed under either of [Apache License, Version 2.0](LICENSE-APACHE) or [MIT license](LICENSE-MIT),
+at your option.

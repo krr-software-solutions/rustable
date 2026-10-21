@@ -1,7 +1,7 @@
 //! `#[derive(Table)]`: declare a table as a Rust struct.
 //!
 //! ```ignore
-//! #[derive(rustable_derive::Table)]
+//! #[derive(rustable_sql::Table)]
 //! #[rustable(table = "bookmarks", index = "user_id, created_at")]
 //! struct Bookmark {
 //!     #[rustable(primary_key, sql_type = "BIGSERIAL")]
@@ -151,13 +151,13 @@ fn expand(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         let data_type = if let Some(t) = &attrs.sql_type {
             quote! { ::std::string::String::from(#t) }
         } else {
-            quote! { <#ty as ::rustable_core::code::SqlType>::sql_type(dialect) }
+            quote! { <#ty as ::rustable_sql::__private::code::SqlType>::sql_type(dialect) }
         };
         let default = opt_string(attrs.default.as_ref());
         // `Option<T>` is nullable. Decided from the syntax, so it also works with `sql_type`.
         let nullable = is_option(ty);
         statements.push(quote! {
-            table.columns.push(::rustable_core::schema::Column {
+            table.columns.push(::rustable_sql::__private::schema::Column {
                 name: ::std::string::String::from(#column),
                 data_type: #data_type,
                 nullable: #nullable,
@@ -172,7 +172,7 @@ fn expand(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         if attrs.indexed || attrs.unique {
             let unique = attrs.unique;
             statements.push(quote! {
-                table.indexes.push(::rustable_core::schema::Index {
+                table.indexes.push(::rustable_sql::__private::schema::Index {
                     columns: ::std::vec![::std::string::String::from(#column)],
                     unique: #unique,
                     constraint: #unique,
@@ -191,7 +191,7 @@ fn expand(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
             let on_delete = opt_string(attrs.on_delete.as_ref());
             let on_update = opt_string(attrs.on_update.as_ref());
             statements.push(quote! {
-                table.foreign_keys.push(::rustable_core::schema::ForeignKey {
+                table.foreign_keys.push(::rustable_sql::__private::schema::ForeignKey {
                     name: ::std::option::Option::None,
                     columns: ::std::vec![::std::string::String::from(#column)],
                     references_table: ::std::string::String::from(#ref_table),
@@ -208,7 +208,7 @@ fn expand(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
         let using = opt_string(spec.using.as_ref());
         let predicate = opt_string(spec.predicate.as_ref());
         statements.push(quote! {
-            table.indexes.push(::rustable_core::schema::Index {
+            table.indexes.push(::rustable_sql::__private::schema::Index {
                 name: #name,
                 columns: ::std::vec![#(::std::string::String::from(#columns)),*],
                 unique: #unique,
@@ -221,7 +221,7 @@ fn expand(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     for (name, expr) in checks {
         let name = opt_string(name.as_ref());
         statements.push(quote! {
-            table.checks.push(::rustable_core::schema::Check {
+            table.checks.push(::rustable_sql::__private::schema::Check {
                 name: #name,
                 expr: ::std::string::String::from(#expr),
             });
@@ -229,17 +229,17 @@ fn expand(input: &DeriveInput) -> syn::Result<proc_macro2::TokenStream> {
     }
 
     Ok(quote! {
-        impl ::rustable_core::code::Table for #ident {
-            fn table(dialect: ::rustable_core::Dialect) -> ::rustable_core::schema::Table {
-                let mut table = ::rustable_core::schema::Table::new(::std::string::String::from(#full_name));
+        impl ::rustable_sql::__private::code::Table for #ident {
+            fn table(dialect: ::rustable_sql::__private::Dialect) -> ::rustable_sql::__private::schema::Table {
+                let mut table = ::rustable_sql::__private::schema::Table::new(::std::string::String::from(#full_name));
                 #(#statements)*
-                ::rustable_core::code::finish(table, dialect)
+                ::rustable_sql::__private::code::finish(table, dialect)
             }
         }
 
-        ::rustable_core::code::inventory::submit! {
-            ::rustable_core::code::TableDef {
-                build: <#ident as ::rustable_core::code::Table>::table,
+        ::rustable_sql::__private::code::inventory::submit! {
+            ::rustable_sql::__private::code::TableDef {
+                build: <#ident as ::rustable_sql::__private::code::Table>::table,
             }
         }
     })

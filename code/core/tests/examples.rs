@@ -2,8 +2,8 @@
 
 use std::path::{Path, PathBuf};
 
-use rustable_core::Dialect;
-use rustable_core::project::analyze_dir;
+use rustable_sql_core::Dialect;
+use rustable_sql_core::project::analyze_dir;
 
 fn examples() -> Vec<(PathBuf, Dialect)> {
     let root = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../examples");
@@ -59,7 +59,7 @@ fn only_do_blocks_are_unknown() {
         let project = analyze_dir(&dir, dialect).unwrap();
         for m in &project.migrations {
             for s in &m.steps {
-                if let rustable_core::change::Change::Unknown { reason, sql } = &s.change {
+                if let rustable_sql_core::change::Change::Unknown { reason, sql } = &s.change {
                     assert!(
                         sql.starts_with("DO "),
                         "{} {}: {reason}",
@@ -90,14 +90,14 @@ fn every_example_analyzes() {
                 match (&m.provided_undo, &m.generated_undo) {
                     (Some(c), _) if c.restores_schema() => "provided ✓".to_string(),
                     (Some(c), _) => format!("provided ✗ {:?}", c.differences),
-                    (None, rustable_core::undo::GeneratedUndo::Generated(_)) =>
+                    (None, rustable_sql_core::undo::GeneratedUndo::Generated(_)) =>
                         "generated".to_string(),
-                    (None, rustable_core::undo::GeneratedUndo::NotTrivial(r)) =>
+                    (None, rustable_sql_core::undo::GeneratedUndo::NotTrivial(r)) =>
                         format!("none ({} reasons)", r.len()),
                 }
             );
             for s in &m.steps {
-                if let rustable_core::change::Change::Unknown { reason, .. } = &s.change {
+                if let rustable_sql_core::change::Change::Unknown { reason, .. } = &s.change {
                     println!("      UNKNOWN line {}: {reason}", s.line);
                 }
             }

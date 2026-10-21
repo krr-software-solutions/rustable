@@ -1,7 +1,7 @@
 //! Apply rustable migrations to a real database.
 //!
 //! Applied migrations are recorded in a `rustable_history` table (version, name, checksum,
-//! applied-at). Each migration's statements are split with [`rustable_core::statements`] and
+//! applied-at). Each migration's statements are split with [`rustable_sql_core::statements`] and
 //! executed one by one, so MySQL `DELIMITER` blocks and Postgres `DO $$` bodies work without
 //! any client-side tricks.
 //!
@@ -16,11 +16,11 @@
 
 use std::path::Path;
 
-use rustable_core::Dialect;
-use rustable_core::change::summarize;
-use rustable_core::discover::{MigrationFiles, discover};
-use rustable_core::statements::{SqlStatement, split_and_parse};
-use rustable_core::version::MigrationId;
+use rustable_sql_core::Dialect;
+use rustable_sql_core::change::summarize;
+use rustable_sql_core::discover::{MigrationFiles, discover};
+use rustable_sql_core::statements::{SqlStatement, split_and_parse};
+use rustable_sql_core::version::MigrationId;
 use sqlx::{AnyConnection, AssertSqlSafe, Connection, Row};
 
 #[derive(Debug, thiserror::Error)]
@@ -28,7 +28,7 @@ pub enum DbError {
     #[error("database error: {0}")]
     Sqlx(#[from] sqlx::Error),
     #[error(transparent)]
-    Core(#[from] rustable_core::Error),
+    Core(#[from] rustable_sql_core::Error),
     #[error("{migration} line {line} failed: {sql}\n  {source}{note}")]
     Statement {
         migration: String,
@@ -213,7 +213,7 @@ fn utc_now() -> String {
     let secs = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |d| d.as_secs());
-    let v = rustable_core::version::Version::from_unix_seconds(secs);
+    let v = rustable_sql_core::version::Version::from_unix_seconds(secs);
     format!(
         "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}Z",
         v.year,
@@ -231,7 +231,7 @@ fn literal(s: &str) -> String {
 
 fn read(path: &Path) -> Result<String, DbError> {
     std::fs::read_to_string(path).map_err(|source| {
-        DbError::Core(rustable_core::Error::Io {
+        DbError::Core(rustable_sql_core::Error::Io {
             path: path.to_path_buf(),
             source,
         })
@@ -719,7 +719,7 @@ impl Database {
         let mut sources = Vec::new();
         for f in discover(dir)? {
             if applied.contains(&f.id.version.to_string()) {
-                sources.push(rustable_core::project::MigrationSource {
+                sources.push(rustable_sql_core::project::MigrationSource {
                     up: read(&f.up)?,
                     undo: None,
                     id: f.id,
@@ -728,7 +728,7 @@ impl Database {
                 });
             }
         }
-        let expected = rustable_core::project::analyze(sources, self.dialect).schema;
+        let expected = rustable_sql_core::project::analyze(sources, self.dialect).schema;
         let actual = self.introspect().await?;
         let mut differences = compare(&expected, &actual, self.dialect);
         let indexes = self.introspect_indexes().await?;
@@ -738,12 +738,12 @@ impl Database {
 }
 
 fn compare(
-    expected: &rustable_core::schema::Schema,
+    expected: &rustable_sql_core::schema::Schema,
     actual: &[(String, String, String, bool)],
     dialect: Dialect,
 ) -> Vec<String> {
     let mut out = Vec::new();
-    let tables: Vec<&rustable_core::schema::Table> = expected
+    let tables: Vec<&rustable_sql_core::schema::Table> = expected
         .tables
         .iter()
         .filter(|t| !t.options.contains_key("PARTITION OF"))
@@ -805,7 +805,7 @@ fn compare(
 }
 
 fn compare_indexes(
-    expected: &rustable_core::schema::Schema,
+    expected: &rustable_sql_core::schema::Schema,
     actual: &[(String, String)],
     dialect: Dialect,
 ) -> Vec<String> {
@@ -855,7 +855,7 @@ fn compare_indexes(
 }
 
 fn comparable_type(t: &str, dialect: Dialect) -> String {
-    let canonical = rustable_core::types::canonical_type(t, dialect).replace(", ", ",");
+    let canonical = rustable_sql_core::types::canonical_type(t, dialect).replace(", ", ",");
     match canonical.as_str() {
         "SERIAL" => "INTEGER".to_string(),
         "BIGSERIAL" => "BIGINT".to_string(),

@@ -3,9 +3,9 @@ use std::path::{Path, PathBuf};
 use crate::config::InitialConfig;
 use crate::error::RustableError;
 use clap::{Args, CommandFactory, Parser, Subcommand};
-use rustable_core::change::Change;
-use rustable_core::project::{Project, analyze_dir};
-use rustable_core::undo::GeneratedUndo;
+use rustable_sql_core::change::Change;
+use rustable_sql_core::project::{Project, analyze_dir};
+use rustable_sql_core::undo::GeneratedUndo;
 
 pub mod config;
 pub mod error;
@@ -194,7 +194,7 @@ async fn command_analyze(config_path: PathBuf) -> Result<(), RustableError> {
     Ok(())
 }
 
-fn describe(c: &rustable_core::analysis::Compat) -> String {
+fn describe(c: &rustable_sql_core::analysis::Compat) -> String {
     match c.reason() {
         Some(r) => format!("{} ({r})", c.label()),
         None => c.label().to_string(),
@@ -232,7 +232,7 @@ async fn command_generate(config_path: PathBuf, no_undo: bool) -> Result<(), Rus
     write_file(&config.current_schema_path, &project.schema.to_toml()?).await?;
     println!("wrote {}", config.current_schema_path.display());
 
-    let md = rustable_core::report::migrations_md(&project, MIGRATIONS_MD_TITLE);
+    let md = rustable_sql_core::report::migrations_md(&project, MIGRATIONS_MD_TITLE);
     write_file(&config.migrations_md_path, &md).await?;
     println!("wrote {}", config.migrations_md_path.display());
     Ok(())
@@ -255,7 +255,7 @@ async fn command_check(config_path: PathBuf) -> Result<(), RustableError> {
             config.current_schema_path.display()
         )),
     }
-    let expected_md = rustable_core::report::migrations_md(&project, MIGRATIONS_MD_TITLE);
+    let expected_md = rustable_sql_core::report::migrations_md(&project, MIGRATIONS_MD_TITLE);
     match tokio::fs::read_to_string(&config.migrations_md_path).await {
         Ok(actual) if actual == expected_md => {}
         Ok(_) => problems.push(format!(
@@ -306,7 +306,7 @@ async fn command_check(config_path: PathBuf) -> Result<(), RustableError> {
 
 async fn load_code_schema(
     config: &InitialConfig,
-) -> Result<rustable_core::schema::Schema, RustableError> {
+) -> Result<rustable_sql_core::schema::Schema, RustableError> {
     let text = tokio::fs::read_to_string(&config.code_schema_path)
         .await
         .map_err(|source| RustableError::ConfigRead {
@@ -322,7 +322,7 @@ async fn load_code_schema(
 async fn command_diff(config_path: PathBuf) -> Result<(), RustableError> {
     let (config, project) = load_project(&config_path).await?;
     let code = load_code_schema(&config).await?;
-    let differences = rustable_core::diff::diff(&project.schema, &code);
+    let differences = rustable_sql_core::diff::diff(&project.schema, &code);
     if differences.is_empty() {
         println!("the code's tables match the migrations");
     }
@@ -340,11 +340,11 @@ async fn command_plan(
 ) -> Result<(), RustableError> {
     let (config, project) = load_project(&config_path).await?;
     let code = load_code_schema(&config).await?;
-    let plan = rustable_core::plan::plan(
+    let plan = rustable_sql_core::plan::plan(
         &project.schema,
         &code,
         config.dialect,
-        rustable_core::plan::PlanOptions { soft_drops },
+        rustable_sql_core::plan::PlanOptions { soft_drops },
     );
     if plan.is_empty() && plan.outstanding.is_empty() {
         println!("nothing to do: the code's tables match the migrations");
@@ -356,8 +356,8 @@ async fn command_plan(
     }
 
     if !plan.is_empty() {
-        let id = rustable_core::version::MigrationId {
-            version: rustable_core::version::Version::now(),
+        let id = rustable_sql_core::version::MigrationId {
+            version: rustable_sql_core::version::Version::now(),
             name,
         };
         let path = config.migrations_dir_path.join(id.up_file_name());
@@ -378,9 +378,9 @@ async fn command_plan(
     Ok(())
 }
 
-async fn connect(db: &DbArgs) -> Result<(InitialConfig, rustable_db::Database), RustableError> {
+async fn connect(db: &DbArgs) -> Result<(InitialConfig, rustable_sql_db::Database), RustableError> {
     let config: InitialConfig = InitialConfig::load(&db.config.config_path).await?;
-    let params = rustable_db::ConnectionParams {
+    let params = rustable_sql_db::ConnectionParams {
         host: db.db_host.clone(),
         port: db.db_port,
         user: db.db_user.clone(),
@@ -388,7 +388,7 @@ async fn connect(db: &DbArgs) -> Result<(InitialConfig, rustable_db::Database), 
         name: db.db_name.clone(),
     };
     let database =
-        rustable_db::Database::connect(&params.url(config.dialect), config.dialect).await?;
+        rustable_sql_db::Database::connect(&params.url(config.dialect), config.dialect).await?;
     Ok((config, database))
 }
 
@@ -399,15 +399,15 @@ async fn connect_locked(
 ) -> Result<
     (
         InitialConfig,
-        rustable_db::Database,
-        Option<rustable_db::FileLock>,
+        rustable_sql_db::Database,
+        Option<rustable_sql_db::FileLock>,
     ),
     RustableError,
 > {
     let timeout = std::time::Duration::from_secs(db.lock_timeout);
     let waiting = || eprintln!("waiting for another rustable run to finish (lock held)…");
     let file_lock = match &db.lock_file {
-        Some(path) => Some(rustable_db::FileLock::acquire(path, timeout, waiting).await?),
+        Some(path) => Some(rustable_sql_db::FileLock::acquire(path, timeout, waiting).await?),
         None => None,
     };
     let (config, mut database) = connect(db).await?;
@@ -424,10 +424,10 @@ async fn command_db(command: DbCommand) -> Result<(), RustableError> {
             let (config, mut database, _lock) = connect_locked(&db).await?;
             for line in database.status(&config.migrations_dir_path).await? {
                 let state = match line.state {
-                    rustable_db::State::Applied => "applied",
-                    rustable_db::State::Pending => "pending",
-                    rustable_db::State::Modified => "EDITED SINCE APPLIED",
-                    rustable_db::State::Missing => "MISSING FILE",
+                    rustable_sql_db::State::Applied => "applied",
+                    rustable_sql_db::State::Pending => "pending",
+                    rustable_sql_db::State::Modified => "EDITED SINCE APPLIED",
+                    rustable_sql_db::State::Missing => "MISSING FILE",
                 };
                 println!("{:<20} {:<17} {}", state, line.version, line.name);
             }
