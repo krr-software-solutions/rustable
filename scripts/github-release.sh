@@ -4,7 +4,8 @@
 #
 # On GitHub the assets drop the version, so the latest release has stable download URLs:
 #   https://github.com/krr-software-solutions/rustable/releases/latest/download/rustable-sql-x86_64-unknown-linux-musl.tar.gz
-# (each with a matching .sha256). Re-running it re-uploads the assets of an existing release.
+# (each with a matching .sha256), which is what install.sh (also attached) downloads. Re-running
+# it re-uploads the assets of an existing release.
 #
 # Run by CI's `github-release` job: needs git + gh, a full clone (GIT_DEPTH 0), and GITHUB_TOKEN,
 # a token that can write the repo's contents.
@@ -28,6 +29,7 @@ for file in dist/*.tar.gz; do
   cp "$file" "$assets/$name"
   (cd "$assets" && sha256sum "$name" > "$name.sha256")
 done
+cp install.sh "$assets/install.sh"
 
 if gh release view "$tag" --repo "$repo" > /dev/null 2>&1; then
   gh release upload "$tag" "$assets"/* --repo "$repo" --clobber

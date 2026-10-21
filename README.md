@@ -16,17 +16,27 @@ Point it at a directory of plain `.sql` migrations and it will:
 
 ## Install
 
-The CLI is `rustable`, published as the `rustable-sql-cli` crate (the name `rustable` was taken):
+The CLI is `rustable` (Linux x86_64/aarch64, static, so any distro; macOS x86_64/arm64):
 
 ```sh
-cargo install rustable-sql-cli          # from source
-docker run --rm -v "$PWD:/work" krrsoftwaresolutions/rustable-sql analyze
+curl -fsSL https://github.com/krr-software-solutions/rustable/releases/latest/download/install.sh | sh
 ```
 
-Prebuilt binaries (Linux x86_64/aarch64, static; macOS x86_64/arm64) are attached to every
-[release](https://github.com/krr-software-solutions/rustable/releases). The image runs as
-an unprivileged user; for commands that write files (`generate`, `plan --write`) add
-`--user "$(id -u):$(id -g)"`.
+It installs to `~/.local/bin` and never uses sudo; to uninstall, delete the binary. To pin a version
+or install elsewhere, set the variables on the `sh` side of the pipe:
+`… | RUSTABLE_VERSION=0.1.2 RUSTABLE_INSTALL_DIR=/opt/bin sh`. Read
+[`install.sh`](install.sh) first if you like: it downloads the archive for your platform from the
+[release](https://github.com/krr-software-solutions/rustable/releases) and checks its sha256.
+
+Or:
+
+```sh
+cargo install rustable-sql-cli                                             # from source (crate name: `rustable` was taken)
+docker run --rm -v "$PWD:/work" krrsoftwaresolutions/rustable-sql analyze  # Docker
+```
+
+The image runs as an unprivileged user; for commands that write files (`generate`,
+`plan --write`) add `--user "$(id -u):$(id -g)"`.
 
 To declare tables in Rust, depend on the library:
 
@@ -148,7 +158,8 @@ git tag v0.1.0 && git push origin v0.1.0
 ```
 
 The tag pipeline (`.gitlab-ci.yml`) checks, builds the binaries, pushes the image to Docker Hub,
-creates the GitLab and GitHub releases, and publishes every crate to crates.io, last. It needs the
+creates the GitLab and GitHub releases (the GitHub one with `install.sh`), checks that `install.sh`
+installs the new version, and publishes every crate to crates.io, last. It needs the
 CI variables `CARGO_REGISTRY_TOKEN`, `DOCKERHUB_USER`, `DOCKERHUB_TOKEN` and `GITHUB_TOKEN`.
 
 ## Source

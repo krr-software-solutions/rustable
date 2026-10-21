@@ -7,14 +7,15 @@
 # A release tag runs:
 #   test     check                 fmt, clippy, tests
 #   build    build: [<target>]     the `rustable` binary per target (cargo-zigbuild, all from Linux)
-#   publish  docker-image          multi-arch image → this project's registry (+ Docker Hub, if configured)
+#   publish  docker-image          multi-arch image → Docker Hub
 #            gitlab-release        archives → generic package registry, and the GitLab release
-#            github-release        the tag + archives → the public GitHub mirror's release
+#            github-release        the tag + archives + install.sh → the public GitHub mirror's release
+#            install-smoke         install.sh from that release, on Alpine and Debian: installs that version
 #            publish-crates        `cargo publish --workspace` → crates.io (needs CARGO_REGISTRY_TOKEN)
 #
 # Everything in `publish` waits for `check` and every `build`, so a failing build never leaves a
 # half-published version behind. crates.io versions can't be replaced, so publish-crates also
-# waits for the image and both releases.
+# waits for the image, both releases, and the install smoke test.
 #
 # CI variables (Settings → CI/CD → Variables):
 #   CARGO_REGISTRY_TOKEN            crates.io token (masked)
@@ -85,6 +86,15 @@ check:
     - cargo clippy --workspace --all-targets --locked
     - cargo test --workspace --locked
 
+shellcheck:
+  extends:
+    - .runner
+    - ".mr=auto,tag=never"
+  stage: test
+  image: koalaman/shellcheck-alpine:stable
+  script:
+    - shellcheck install.sh scripts/*.sh
+
 # Packages and verifies every crate the way crates.io will see it (with the 0.0.0 placeholder).
 publish-dry-run:
   extends:
@@ -149,8 +159,8 @@ build:
 # ----- publish -----
 
 # Multi-arch image from the prebuilt binaries (the Dockerfile only COPYs, so no QEMU).
-# On a tag: `<version>` (+ `latest` unless it's a pre-release), to Docker Hub and this project's
-# registry. Manual on MRs: `mr-<iid>`, to this project's registry only.
+# On a tag: pushed to Docker Hub as `<version>` (+ `latest` unless it's a pre-release).
+# Manual on MRs: builds both platforms without pushing anywhere, to check the image builds.
 docker-image:
   extends:
     - .runner
@@ -166,32 +176,26 @@ docker-image:
     DOCKER_TLS_CERTDIR: ""
   script:
     - |
+      push=""
       if [ -n "${CI_COMMIT_TAG:-}" ]; then
-        version="${CI_COMMIT_TAG#v}"
-        tags="$version"
-        case "$version" in *-*) ;; *) tags="$tags latest" ;; esac
-      else
-        tags="mr-$CI_MERGE_REQUEST_IID"
-      fi
-      echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
-      args=""
-      for t in $tags; do args="$args -t $CI_REGISTRY_IMAGE:$t"; done
-      if [ -n "${CI_COMMIT_TAG:-}" ]; then
-        # Fail rather than quietly skip Docker Hub.
         if [ -z "${DOCKERHUB_USER:-}" ] || [ -z "${DOCKERHUB_TOKEN:-}" ]; then
           echo "DOCKERHUB_USER/DOCKERHUB_TOKEN are not set"
           exit 1
         fi
         echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin docker.io
-        for t in $tags; do args="$args -t docker.io/$DOCKERHUB_USER/rustable-sql:$t"; done
+        version="${CI_COMMIT_TAG#v}"
+        tags="$version"
+        case "$version" in *-*) ;; *) tags="$tags latest" ;; esac
+        for t in $tags; do push="$push -t docker.io/$DOCKERHUB_USER/rustable-sql:$t"; done
+        push="$push --push"
       fi
       docker buildx create --use
       docker buildx build --platform linux/amd64,linux/arm64 \
         --label "org.opencontainers.image.version=${CI_COMMIT_TAG:-mr-$CI_MERGE_REQUEST_IID}" \
         --label "org.opencontainers.image.revision=$CI_COMMIT_SHA" \
-        --label "org.opencontainers.image.source=$CI_PROJECT_URL" \
+        --label "org.opencontainers.image.source=https://github.com/krr-software-solutions/rustable" \
         --label "org.opencontainers.image.licenses=MIT OR Apache-2.0" \
-        $args --push .
+        $push .
 
 gitlab-release:
   extends:
@@ -220,6 +224,26 @@ github-release:
   script:
     - scripts/github-release.sh
 
+# install.sh, fetched from the release just published, must install that exact version.
+install-smoke:
+  extends:
+    - .runner
+    - ".mr=never,tag=auto"
+  stage: publish
+  needs: [github-release]
+  parallel:
+    matrix:
+      - IMAGE: ["alpine:3.21", "debian:13"]
+  image: $IMAGE
+  variables:
+    GIT_STRATEGY: none   # tests the published script, not the checkout
+  script:
+    - if ! command -v wget > /dev/null; then apt-get -qq update && apt-get -qq install -y wget ca-certificates > /dev/null; fi
+    - version="${CI_COMMIT_TAG#v}"
+    - wget -qO install.sh "https://github.com/krr-software-solutions/rustable/releases/download/$CI_COMMIT_TAG/install.sh"
+    - RUSTABLE_VERSION="$version" sh install.sh
+    - test "$("$HOME/.local/bin/rustable" --version)" = "rustable $version"
+
 publish-crates:
   extends:
     - .runner
@@ -227,7 +251,7 @@ publish-crates:
     - .set-version
     - ".mr=never,tag=auto"
   stage: publish
-  needs: [check, build, docker-image, gitlab-release, github-release]
+  needs: [check, build, docker-image, gitlab-release, github-release, install-smoke]
   script:
     - '[ -n "${CARGO_REGISTRY_TOKEN:-}" ] || { echo "CARGO_REGISTRY_TOKEN is not set"; exit 1; }'
     # set-version just rewrote Cargo.toml/Cargo.lock, hence --allow-dirty.
