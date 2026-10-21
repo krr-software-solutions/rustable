@@ -17,8 +17,8 @@ edition = "2024"
 # sqlx 0.9 needs 1.94 (checked: the workspace builds on 1.94.1).
 rust-version = "1.94"
 license = "MIT OR Apache-2.0"
-repository = "https://gitlab.krr-software-solutions.com/oss/rustable"
-homepage = "https://gitlab.krr-software-solutions.com/oss/rustable"
+repository = "https://github.com/krr-software-solutions/rustable"
+homepage = "https://github.com/krr-software-solutions/rustable"
 readme = "README.md"
 keywords = ["sql", "migrations", "schema", "postgres", "mysql"]
 

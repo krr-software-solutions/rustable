@@ -24,7 +24,7 @@ docker run --rm -v "$PWD:/work" krrsoftwaresolutions/rustable-sql analyze
 ```
 
 Prebuilt binaries (Linux x86_64/aarch64, static; macOS x86_64/arm64) are attached to every
-[release](https://gitlab.krr-software-solutions.com/oss/rustable/-/releases). The image runs as
+[release](https://github.com/krr-software-solutions/rustable/releases). The image runs as
 an unprivileged user; for commands that write files (`generate`, `plan --write`) add
 `--user "$(id -u):$(id -g)"`.
 
@@ -147,9 +147,15 @@ in (`scripts/set-version.sh`) before it builds or publishes. To release, tag the
 git tag v0.1.0 && git push origin v0.1.0
 ```
 
-The tag pipeline (`.gitlab-ci.yml`) checks, builds the binaries, pushes the image, creates the
-GitLab release, and publishes every crate to crates.io. Release tags (`v*`) must be protected, as
-the `CARGO_REGISTRY_TOKEN` variable is.
+The tag pipeline (`.gitlab-ci.yml`) checks, builds the binaries, pushes the image to Docker Hub,
+creates the GitLab and GitHub releases, and publishes every crate to crates.io, last. It needs the
+CI variables `CARGO_REGISTRY_TOKEN`, `DOCKERHUB_USER`, `DOCKERHUB_TOKEN` and `GITHUB_TOKEN`.
+
+## Source
+
+This GitHub repository is a read-only mirror: development and releases happen on a private
+GitLab, which pushes `main` and the release tags here. Issues are welcome; pull requests can't be
+merged here directly (the next mirror push would overwrite them), but they're welcome as patches.
 
 ## License
 

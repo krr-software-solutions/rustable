@@ -8,7 +8,6 @@
 set -eu
 
 tag="${CI_COMMIT_TAG:?CI_COMMIT_TAG is not set}"
-: "${DOCKERHUB_USER:?DOCKERHUB_USER is not set (the image on Docker Hub is docker.io/\$DOCKERHUB_USER/rustable-sql)}"
 version="${tag#v}"
 packages="$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/rustable-sql/$version"
 
@@ -25,23 +24,7 @@ for file in dist/*.tar.gz dist/*.tar.gz.sha256; do
     '. + [{name: $name, url: $url, direct_asset_path: $path, link_type: "package"}]')"
 done
 
-description="$(cat <<MD
-## rustable $version
-
-**Binary** (\`rustable\`): download the archive for your platform below, or use the image:
-
-\`\`\`sh
-docker pull $DOCKERHUB_USER/rustable-sql:$version
-\`\`\`
-
-**Crates** ([crates.io](https://crates.io/crates/rustable-sql)):
-
-\`\`\`sh
-cargo install rustable-sql-cli --version $version   # the CLI
-cargo add rustable-sql@$version                     # the library + #[derive(Table)]
-\`\`\`
-MD
-)"
+description="$(scripts/release-notes.sh "$tag")"
 
 jq -n --arg tag "$tag" --arg name "rustable $version" --arg description "$description" --argjson links "$links" \
   '{tag_name: $tag, name: $name, description: $description, assets: {links: $links}}' |
