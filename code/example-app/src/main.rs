@@ -7,15 +7,14 @@
 //! Run it to write `code.current_schema.toml`, then let rustable compare:
 //!
 //! ```sh
-//! cargo run -p rustable-example-app -- examples/postgres/ex-1/code.current_schema.toml
+//! cargo run -p rustable-sql-example-app -- examples/postgres/ex-1/code.current_schema.toml
 //! rustable diff --config-path examples/postgres/ex-1/config.toml
 //! rustable plan --config-path examples/postgres/ex-1/config.toml --soft-drops
 //! ```
 
 use std::time::SystemTime;
 
-use rustable_core::Dialect;
-use rustable_derive::Table;
+use rustable_sql::{Dialect, Table};
 
 #[derive(Table)]
 #[rustable(table = "users", unique_index = "users_email_lower_key: lower(email)")]
@@ -56,7 +55,7 @@ fn main() {
     let path = std::env::args()
         .nth(1)
         .unwrap_or_else(|| "code.current_schema.toml".to_string());
-    match rustable_core::code::write_code_schema(path.as_ref(), Dialect::Postgres) {
+    match rustable_sql::code::write_code_schema(path.as_ref(), Dialect::Postgres) {
         Ok(()) => println!("wrote {path}"),
         Err(e) => {
             eprintln!("ERROR - {e}");

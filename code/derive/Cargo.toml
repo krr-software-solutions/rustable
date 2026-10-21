@@ -1,8 +1,15 @@
 [package]
-name = "rustable-derive"
+name = "rustable-sql-derive"
 description = "#[derive(Table)] for rustable: declare tables in Rust, diff them against your migrations"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories = ["database"]
 
 [lib]
 proc-macro = true

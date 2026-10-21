@@ -59,7 +59,7 @@ fn calculate_opt_relative_path(
 }
 
 /// The dialect enum lives in `rustable-core`, so the CLI never has to touch `sqlparser`.
-pub use rustable_core::Dialect;
+pub use rustable_sql_core::Dialect;
 
 // TODO (KR) : figure out what configs need to live where
 #[derive(Clone, Debug, Deserialize)]
@@ -69,7 +69,7 @@ pub struct RawInitialConfig {
     pub migrations_dir_path: Option<PathBuf>,
     pub migrations_md_path: Option<PathBuf>,
     pub current_schema_path: Option<PathBuf>,
-    /// Schema written by the app's `#[derive(Table)]` tables (`rustable_core::code`).
+    /// Schema written by the app's `#[derive(Table)]` tables (`rustable_sql_core::code`).
     pub code_schema_path: Option<PathBuf>,
     /// Where `rustable plan --write` reports differences it left alone.
     pub outstanding_path: Option<PathBuf>,

@@ -921,13 +921,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustable-cli"
-version = "0.1.0"
+name = "rustable-sql"
+version = "0.0.0"
+dependencies = [
+ "rustable-sql-core",
+ "rustable-sql-db",
+ "rustable-sql-derive",
+]
+
+[[package]]
+name = "rustable-sql-cli"
+version = "0.0.0"
 dependencies = [
  "clap",
  "clap_complete",
- "rustable-core",
- "rustable-db",
+ "rustable-sql-core",
+ "rustable-sql-db",
  "serde",
  "sqlparser",
  "tokio",
@@ -935,8 +944,8 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustable-core"
-version = "0.1.0"
+name = "rustable-sql-core"
+version = "0.0.0"
 dependencies = [
  "inventory",
  "serde",
@@ -946,18 +955,18 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustable-db"
-version = "0.1.0"
+name = "rustable-sql-db"
+version = "0.0.0"
 dependencies = [
- "rustable-core",
+ "rustable-sql-core",
  "sqlx",
  "thiserror",
  "tokio",
 ]
 
 [[package]]
-name = "rustable-derive"
-version = "0.1.0"
+name = "rustable-sql-derive"
+version = "0.0.0"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -965,11 +974,10 @@ dependencies = [
 ]
 
 [[package]]
-name = "rustable-example-app"
-version = "0.1.0"
+name = "rustable-sql-example-app"
+version = "0.0.0"
 dependencies = [
- "rustable-core",
- "rustable-derive",
+ "rustable-sql",
 ]
 
 [[package]]

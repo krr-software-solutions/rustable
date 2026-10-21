@@ -14,8 +14,8 @@ pub enum RustableError {
         path: PathBuf,
         source: toml::de::Error,
     },
-    Core(rustable_core::Error),
-    Db(rustable_db::DbError),
+    Core(rustable_sql_core::Error),
+    Db(rustable_sql_db::DbError),
     Write {
         path: PathBuf,
         source: std::io::Error,
@@ -48,14 +48,14 @@ impl fmt::Display for RustableError {
     }
 }
 
-impl From<rustable_core::Error> for RustableError {
-    fn from(e: rustable_core::Error) -> Self {
+impl From<rustable_sql_core::Error> for RustableError {
+    fn from(e: rustable_sql_core::Error) -> Self {
         RustableError::Core(e)
     }
 }
 
-impl From<rustable_db::DbError> for RustableError {
-    fn from(e: rustable_db::DbError) -> Self {
+impl From<rustable_sql_db::DbError> for RustableError {
+    fn from(e: rustable_sql_db::DbError) -> Self {
         RustableError::Db(e)
     }
 }

@@ -1,6 +1,7 @@
 [workspace]
 resolver = "3"
 members = [
+    "code/lib",
     "code/core",
     "code/cli",
     "code/derive",
@@ -9,14 +10,25 @@ members = [
 ]
 
 [workspace.package]
-version = "0.1.0"
+# Placeholder: the real version comes from the git tag. CI runs `scripts/set-version.sh`
+# (`v1.2.3` → `1.2.3`) before building or publishing, so local builds report 0.0.0.
+version = "0.0.0"
 edition = "2024"
+# sqlx 0.9 needs 1.94 (checked: the workspace builds on 1.94.1).
+rust-version = "1.94"
+license = "MIT OR Apache-2.0"
+repository = "https://gitlab.krr-software-solutions.com/oss/rustable"
+homepage = "https://gitlab.krr-software-solutions.com/oss/rustable"
+readme = "README.md"
+keywords = ["sql", "migrations", "schema", "postgres", "mysql"]
 
 [workspace.dependencies]
-# workspace crates
-rustable-core = { path = "code/core" }
-rustable-derive = { path = "code/derive" }
-rustable-db = { path = "code/db" }
+# workspace crates: published together, so each pins the others exactly. The `0.0.0` here is
+# the same placeholder as above and is rewritten along with it.
+rustable-sql = { path = "code/lib", version = "=0.0.0" }
+rustable-sql-core = { path = "code/core", version = "=0.0.0" }
+rustable-sql-derive = { path = "code/derive", version = "=0.0.0" }
+rustable-sql-db = { path = "code/db", version = "=0.0.0" }
 
 anyhow = "1"
 thiserror = "2"

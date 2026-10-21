@@ -1,0 +1,24 @@
+[package]
+name = "rustable-sql"
+description = "SQL schema migrations in the spirit of Flyway: analyze, plan and apply plain .sql migrations, and declare tables in Rust with #[derive(Table)]"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories = ["database"]
+
+[features]
+## Apply migrations to a real database (Postgres, MySQL, SQLite) via sqlx: `rustable_sql::db`.
+db = ["dep:rustable-sql-db"]
+
+[dependencies]
+rustable-sql-core.workspace = true
+rustable-sql-derive.workspace = true
+rustable-sql-db = { workspace = true, optional = true }
+
+[lints]
+workspace = true

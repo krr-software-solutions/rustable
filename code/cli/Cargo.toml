@@ -1,16 +1,23 @@
 [package]
-name = "rustable-cli"
+name = "rustable-sql-cli"
 description = "The rustable command-line interface"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories = ["command-line-utilities", "database"]
 
 [[bin]]
 name = "rustable"
 path = "src/main.rs"
 
 [dependencies]
-rustable-core.workspace = true
-rustable-db.workspace = true
+rustable-sql-core.workspace = true
+rustable-sql-db.workspace = true
 
 clap.workspace = true
 clap_complete.workspace = true

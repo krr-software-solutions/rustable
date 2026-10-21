@@ -1,11 +1,18 @@
 [package]
-name = "rustable-db"
+name = "rustable-sql-db"
 description = "Apply rustable migrations to a real database (Postgres, MySQL, SQLite) via sqlx"
 version.workspace = true
 edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+readme.workspace = true
+keywords.workspace = true
+categories = ["database"]
 
 [dependencies]
-rustable-core.workspace = true
+rustable-sql-core.workspace = true
 
 sqlx.workspace = true
 thiserror.workspace = true
