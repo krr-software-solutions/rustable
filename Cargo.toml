@@ -38,7 +38,7 @@ inventory = "0.3"
 proc-macro2 = "1"
 quote = "1"
 sqlparser = "0.63"
-sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "any", "postgres", "mysql", "sqlite"] }
+sqlx = { version = "0.9", default-features = false, features = ["runtime-tokio", "tls-rustls", "any", "postgres", "mysql", "sqlite"] }
 syn = { version = "2", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 toml = "1"

@@ -95,12 +95,40 @@ struct DbArgs {
     /// Database name (for SQLite: the database file path)
     #[arg(long, env = "RUSTABLE_DB_NAME")]
     db_name: String,
+    /// TLS for Postgres/MySQL [default: prefer: TLS if the server offers it]
+    #[arg(long, env = "RUSTABLE_DB_SSL_MODE", value_enum)]
+    db_ssl_mode: Option<SslModeArg>,
+    /// PEM file of CA certificates to trust for verify-ca/verify-full, instead of the bundled
+    /// Mozilla roots (e.g. your cloud provider's database CA bundle)
+    #[arg(long, env = "RUSTABLE_DB_SSL_ROOT_CERT")]
+    db_ssl_root_cert: Option<PathBuf>,
     /// How long to wait for another rustable run to finish (seconds)
     #[arg(long, env = "RUSTABLE_LOCK_TIMEOUT", default_value_t = 300)]
     lock_timeout: u64,
     /// SQLite only: lock this file while running, so concurrent runs wait for each other
     #[arg(long, env = "RUSTABLE_LOCK_FILE")]
     lock_file: Option<PathBuf>,
+}
+
+#[derive(Clone, Copy, Debug, clap::ValueEnum)]
+enum SslModeArg {
+    Disable,
+    Prefer,
+    Require,
+    VerifyCa,
+    VerifyFull,
+}
+
+impl From<SslModeArg> for rustable_sql_db::SslMode {
+    fn from(mode: SslModeArg) -> Self {
+        match mode {
+            SslModeArg::Disable => Self::Disable,
+            SslModeArg::Prefer => Self::Prefer,
+            SslModeArg::Require => Self::Require,
+            SslModeArg::VerifyCa => Self::VerifyCa,
+            SslModeArg::VerifyFull => Self::VerifyFull,
+        }
+    }
 }
 
 #[derive(Debug, Subcommand)]
@@ -386,6 +414,11 @@ async fn connect(db: &DbArgs) -> Result<(InitialConfig, rustable_sql_db::Databas
         user: db.db_user.clone(),
         password: db.db_password.clone(),
         name: db.db_name.clone(),
+        ssl_mode: db.db_ssl_mode.map(Into::into),
+        ssl_root_cert: db
+            .db_ssl_root_cert
+            .as_ref()
+            .map(|p| p.to_string_lossy().into_owned()),
     };
     let database =
         rustable_sql_db::Database::connect(&params.url(config.dialect), config.dialect).await?;

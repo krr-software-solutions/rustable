@@ -106,6 +106,48 @@ fn normalize_version(v: &str) -> String {
     v.get(..17).unwrap_or(v).to_string()
 }
 
+/// Whether (and how strictly) to use TLS for Postgres/MySQL; ignored for SQLite.
+///
+/// The names follow Postgres's `sslmode`; for MySQL they map to `ssl-mode` (`VerifyFull` is
+/// MySQL's `VERIFY_IDENTITY`).
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub enum SslMode {
+    /// Plain TCP only.
+    Disable,
+    /// TLS if the server offers it, else plain TCP: sqlx's default for both databases.
+    #[default]
+    Prefer,
+    /// TLS, but don't verify the server's certificate.
+    Require,
+    /// TLS, and the certificate must chain to a trusted root (`ssl_root_cert`, else the
+    /// bundled Mozilla roots).
+    VerifyCa,
+    /// `VerifyCa`, and the certificate must also match the host name.
+    VerifyFull,
+}
+
+impl SslMode {
+    fn postgres(self) -> &'static str {
+        match self {
+            SslMode::Disable => "disable",
+            SslMode::Prefer => "prefer",
+            SslMode::Require => "require",
+            SslMode::VerifyCa => "verify-ca",
+            SslMode::VerifyFull => "verify-full",
+        }
+    }
+
+    fn mysql(self) -> &'static str {
+        match self {
+            SslMode::Disable => "DISABLED",
+            SslMode::Prefer => "PREFERRED",
+            SslMode::Require => "REQUIRED",
+            SslMode::VerifyCa => "VERIFY_CA",
+            SslMode::VerifyFull => "VERIFY_IDENTITY",
+        }
+    }
+}
+
 /// Where to connect: separate parts rather than one URL.
 #[derive(Clone, Debug, Default)]
 pub struct ConnectionParams {
@@ -116,6 +158,11 @@ pub struct ConnectionParams {
     pub password: Option<String>,
     /// The database name; for SQLite, the database file path.
     pub name: String,
+    /// TLS for Postgres/MySQL. `None` leaves sqlx's default (prefer).
+    pub ssl_mode: Option<SslMode>,
+    /// A PEM file of CA certificates to trust instead of the bundled roots (e.g. a cloud
+    /// provider's database CA), for `VerifyCa`/`VerifyFull`.
+    pub ssl_root_cert: Option<String>,
 }
 
 impl ConnectionParams {
@@ -135,8 +182,30 @@ impl ConnectionParams {
                     (Some(u), None) => format!("{}@", encode(u)),
                     _ => String::new(),
                 };
+                let (mode_key, cert_key) = if dialect == Dialect::Postgres {
+                    ("sslmode", "sslrootcert")
+                } else {
+                    ("ssl-mode", "ssl-ca")
+                };
+                let mut query = Vec::new();
+                if let Some(mode) = self.ssl_mode {
+                    let mode = if dialect == Dialect::Postgres {
+                        mode.postgres()
+                    } else {
+                        mode.mysql()
+                    };
+                    query.push(format!("{mode_key}={mode}"));
+                }
+                if let Some(cert) = &self.ssl_root_cert {
+                    query.push(format!("{cert_key}={}", encode(cert)));
+                }
+                let query = if query.is_empty() {
+                    String::new()
+                } else {
+                    format!("?{}", query.join("&"))
+                };
                 format!(
-                    "{scheme}://{auth}{}:{}/{}",
+                    "{scheme}://{auth}{}:{}/{}{query}",
                     self.host,
                     self.port.unwrap_or(default_port),
                     encode(&self.name)
@@ -893,6 +962,7 @@ mod tests {
             user: Some("app".into()),
             password: Some("p@ss:w/rd".into()),
             name: "shop".into(),
+            ..ConnectionParams::default()
         };
         assert_eq!(
             p.url(Dialect::Postgres),
@@ -907,6 +977,36 @@ mod tests {
             ..ConnectionParams::default()
         };
         assert_eq!(lite.url(Dialect::Sqlite), "sqlite:///tmp/x.db?mode=rwc");
+    }
+
+    #[test]
+    fn builds_tls_urls() {
+        let p = ConnectionParams {
+            host: "db.local".into(),
+            user: Some("app".into()),
+            name: "shop".into(),
+            ssl_mode: Some(SslMode::VerifyFull),
+            ssl_root_cert: Some("/certs/rds ca.pem".into()),
+            ..ConnectionParams::default()
+        };
+        assert_eq!(
+            p.url(Dialect::Postgres),
+            "postgres://app@db.local:5432/shop?sslmode=verify-full&sslrootcert=%2Fcerts%2Frds%20ca.pem"
+        );
+        assert_eq!(
+            p.url(Dialect::MySql),
+            "mysql://app@db.local:3306/shop?ssl-mode=VERIFY_IDENTITY&ssl-ca=%2Fcerts%2Frds%20ca.pem"
+        );
+        // TLS settings don't apply to SQLite.
+        assert_eq!(
+            ConnectionParams {
+                name: "x.db".into(),
+                ssl_mode: Some(SslMode::Require),
+                ..ConnectionParams::default()
+            }
+            .url(Dialect::Sqlite),
+            "sqlite://x.db?mode=rwc"
+        );
     }
 
     #[test]

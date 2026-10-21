@@ -20,7 +20,7 @@ The CLI is `rustable`, published as the `rustable-sql-cli` crate (the name `rust
 
 ```sh
 cargo install rustable-sql-cli          # from source
-docker run --rm -v "$PWD:/work" registry.krr-software-solutions.com/oss/rustable analyze
+docker run --rm -v "$PWD:/work" krrsoftwaresolutions/rustable-sql analyze
 ```
 
 Prebuilt binaries (Linux x86_64/aarch64, static; macOS x86_64/arm64) are attached to every
@@ -66,7 +66,7 @@ Every command takes `--config-path` (or `RUSTABLE_CONFIG_PATH`).
 | `rustable check` | fail if `schema.toml`/`MIGRATIONS.md` are stale or any `.undo.sql` doesn't restore the schema (for CI) |
 | `rustable diff` | how the code's tables (`code.current_schema.toml`) differ from the migrations |
 | `rustable plan [--soft-drops] [--write]` | a migration that brings the migrations in line with the code; leftovers go to `OUTSTANDING.md` |
-| `rustable db status\|migrate\|undo --to <version>\|verify` | run against a real database: `--db-host --db-port --db-user --db-password --db-name` (or `RUSTABLE_DB_*` env vars; SQLite: `--db-name` is the file) |
+| `rustable db status\|migrate\|undo --to <version>\|verify` | run against a real database: `--db-host --db-port --db-user --db-password --db-name` (or `RUSTABLE_DB_*` env vars; SQLite: `--db-name` is the file), and TLS: `--db-ssl-mode disable\|prefer\|require\|verify-ca\|verify-full` (default `prefer`), `--db-ssl-root-cert <pem>` for a private CA (e.g. your cloud provider's database CA bundle) |
 | `rustable completions <shell>` | shell completion script |
 
 ### Running on app startup

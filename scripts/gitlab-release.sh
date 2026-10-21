@@ -8,6 +8,7 @@
 set -eu
 
 tag="${CI_COMMIT_TAG:?CI_COMMIT_TAG is not set}"
+: "${DOCKERHUB_USER:?DOCKERHUB_USER is not set (the image on Docker Hub is docker.io/\$DOCKERHUB_USER/rustable-sql)}"
 version="${tag#v}"
 packages="$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/rustable-sql/$version"
 
@@ -30,7 +31,7 @@ description="$(cat <<MD
 **Binary** (\`rustable\`): download the archive for your platform below, or use the image:
 
 \`\`\`sh
-docker pull $CI_REGISTRY_IMAGE:$version
+docker pull $DOCKERHUB_USER/rustable-sql:$version
 \`\`\`
 
 **Crates** ([crates.io](https://crates.io/crates/rustable-sql)):

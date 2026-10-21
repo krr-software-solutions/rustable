@@ -17,7 +17,7 @@
 #
 # CI variables (Settings → CI/CD → Variables):
 #   CARGO_REGISTRY_TOKEN            crates.io token: masked + protected (so `v*` tags must be protected)
-#   DOCKERHUB_USER, DOCKERHUB_TOKEN optional: also push the image to docker.io/$DOCKERHUB_USER/rustable-sql
+#   DOCKERHUB_USER, DOCKERHUB_TOKEN tag pipelines push docker.io/$DOCKERHUB_USER/rustable-sql (protected, like the token)
 workflow:
   rules:
     - if: $CI_PIPELINE_SOURCE == "merge_request_event"
@@ -147,7 +147,8 @@ build:
 # ----- publish -----
 
 # Multi-arch image from the prebuilt binaries (the Dockerfile only COPYs, so no QEMU).
-# On a tag: `<version>` (+ `latest` unless it's a pre-release). Manual on MRs: `mr-<iid>`.
+# On a tag: `<version>` (+ `latest` unless it's a pre-release), to Docker Hub and this project's
+# registry. Manual on MRs: `mr-<iid>`, to this project's registry only.
 docker-image:
   extends:
     - .runner
@@ -173,7 +174,12 @@ docker-image:
       echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
       args=""
       for t in $tags; do args="$args -t $CI_REGISTRY_IMAGE:$t"; done
-      if [ -n "${CI_COMMIT_TAG:-}" ] && [ -n "${DOCKERHUB_USER:-}" ] && [ -n "${DOCKERHUB_TOKEN:-}" ]; then
+      if [ -n "${CI_COMMIT_TAG:-}" ]; then
+        # Fail rather than quietly skip Docker Hub: protected variables are empty on unprotected tags.
+        if [ -z "${DOCKERHUB_USER:-}" ] || [ -z "${DOCKERHUB_TOKEN:-}" ]; then
+          echo "DOCKERHUB_USER/DOCKERHUB_TOKEN are not set (they're protected: is this tag protected?)"
+          exit 1
+        fi
         echo "$DOCKERHUB_TOKEN" | docker login -u "$DOCKERHUB_USER" --password-stdin docker.io
         for t in $tags; do args="$args -t docker.io/$DOCKERHUB_USER/rustable-sql:$t"; done
       fi
